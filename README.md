@@ -16,3 +16,18 @@
 *  Configuration & Control:
    *  The server should be started from the command line, allowing the IP address and port to be specified as arguments.
    *  It should log basic status messages, such as "Server started," "Client connected," and "Client disconnected," to the console.
+
+
+### Hot to build
+Change current directory: 
+```bash 
+cd Http_chat
+```
+Build the project using the meson:
+```bash 
+meson setup build 
+```
+To execute and start the server use this command:
+```bash 
+./build/chat 127.0.0.1 8080
+```
