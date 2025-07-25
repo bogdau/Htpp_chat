@@ -7,6 +7,7 @@
 #include <ctime>
 #include <iostream>
 #include <memory>
+#include <vector>
 
 class Server : public std::enable_shared_from_this<Server>
 {
@@ -18,6 +19,8 @@ private:
     boost::asio::steady_timer deadline_{
         socket_.get_executor(), std::chrono::seconds(60)}; // The timer for putting a deadline on connection processing.
 
+    std::vector<unsigned int> user_id;
+    static inline unsigned int user_count = 0;
 public:
     Server(boost::asio::ip::tcp::socket socket);
     void start();
@@ -28,4 +31,5 @@ public:
     void write_response();
 
     void check_deadline();
+
 };
