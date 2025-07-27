@@ -91,17 +91,23 @@ void Server::process_request()
 void Server::read_request()
 {
     auto self = shared_from_this();
-    
-    Server::user_count += 1;
-    user_id.push_back(Server::user_count);
-    for(auto itr: user_id){
-        std::cout << itr << " " ;
-    }
-    std::cout << std::endl;
-    std::cout << "New user was connected!" << std::endl;
-    // boost::asio::ip::tcp::socket socket(io_context);
+
     boost::asio::ip::tcp::endpoint remote_endpoint = socket_.remote_endpoint();
-    std::cout << "Client connected from: " << remote_endpoint.address().to_string() << ":" << remote_endpoint.port() << std::endl;
+    std::string client_key = remote_endpoint.address().to_string();
+
+    if (client_identifiers.find(client_key) == client_identifiers.end())
+    {
+        ++user_count;
+        client_identifiers[client_key] = user_count;
+
+        std::cout << "New user connected! ID: " << user_count << " from "
+                  << client_key << ":" << remote_endpoint.port() << std::endl;
+    }
+    else
+    {
+        std::cout << "Returning user ID: " << client_identifiers[client_key]
+                  << " from " << client_key << ":" << remote_endpoint.port() << std::endl;
+    }
 
     boost::beast::http::async_read(
         socket_,

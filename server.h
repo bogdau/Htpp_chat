@@ -19,8 +19,8 @@ private:
     boost::asio::steady_timer deadline_{
         socket_.get_executor(), std::chrono::seconds(60)}; // The timer for putting a deadline on connection processing.
 
-    std::vector<unsigned int> user_id;
     static inline unsigned int user_count = 0;
+    static inline std::unordered_map<std::string, int> client_identifiers = {}; 
 public:
     Server(boost::asio::ip::tcp::socket socket);
     void start();
