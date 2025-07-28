@@ -1,4 +1,5 @@
 #include "server.h"
+#include "websocket.h"
 
 #include <sstream>
 #include <string>
@@ -115,7 +116,15 @@ void Server::read_request()
         {
             boost::ignore_unused(bytes_transferred);
             if (!ec)
+            {
+                if (boost::beast::websocket::is_upgrade(self->request_))
+                {
+                    std::make_shared<WebSocketSession>(std::move(self->socket_))->run(std::move(self->request_));
+                    return;
+                }
+
                 self->process_request();
+            }
         });
 }
 
