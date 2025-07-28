@@ -1,5 +1,9 @@
 #include "server.h"
 
+#include <sstream>
+#include <string>
+#include <fstream>
+
 Server::Server(boost::asio::ip::tcp::socket socket) : socket_(std::move(socket)) {}
 
 void Server::check_deadline()
@@ -16,6 +20,22 @@ void Server::check_deadline()
         });
 }
 
+std::string Server::html_file_content()
+{
+    std::ifstream html_file("index.html");
+    if (html_file)
+    {
+        std::stringstream file_buffer;
+        file_buffer << html_file.rdbuf();
+        return file_buffer.str();
+    }
+    else
+    {
+        std::string html_error_content = "<html><body><h1>Error 404: HTML source file Not Found</h1></body></html>";
+        return html_error_content;
+    }
+}
+
 void Server::start()
 {
     read_request();
@@ -24,33 +44,10 @@ void Server::start()
 
 void Server::create_response()
 {
-    if (request_.target() == "/count")
+    if (request_.target() == "/chat")
     {
         response_.set(boost::beast::http::field::content_type, "text/html");
-        boost::beast::ostream(response_.body())
-            << "<html>\n"
-            << "<head><title>Request count</title></head>\n"
-            << "<body>\n"
-            << "<h1>Request count</h1>\n"
-            << "<p>There have been "
-            << 1
-            << " requests so far.</p>\n"
-            << "</body>\n"
-            << "</html>\n";
-    }
-    else if (request_.target() == "/time")
-    {
-        response_.set(boost::beast::http::field::content_type, "text/html");
-        boost::beast::ostream(response_.body())
-            << "<html>\n"
-            << "<head><title>Current time</title></head>\n"
-            << "<body>\n"
-            << "<h1>Current time</h1>\n"
-            << "<p>The current time is "
-            << std::chrono::system_clock::to_time_t(std::chrono::system_clock::now())
-            << " seconds since the epoch.</p>\n"
-            << "</body>\n"
-            << "</html>\n";
+        boost::beast::ostream(response_.body()) << html_file_content();
     }
     else
     {

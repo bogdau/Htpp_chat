@@ -21,6 +21,8 @@ private:
 
     static inline unsigned int user_count = 0;
     static inline std::unordered_map<std::string, int> client_identifiers = {}; 
+
+    std::string html_file_content();
 public:
     Server(boost::asio::ip::tcp::socket socket);
     void start();

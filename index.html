@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Chat</title>
+    <style>
+        /* Basic styling for a clean chat interface */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: #333;
+        }
+
+        #chat-container {
+            width: 100%;
+            max-width: 600px;
+            height: 80vh;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        #header {
+            padding: 1rem;
+            background-color: #007bff;
+            color: white;
+            text-align: center;
+            font-weight: bold;
+            border-bottom: 1px solid #ddd;
+        }
+
+        #status {
+            font-size: 0.8em;
+            opacity: 0.8;
+        }
+
+        #messages {
+            flex-grow: 1;
+            padding: 1.5rem;
+            overflow-y: auto;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .message {
+            max-width: 75%;
+            padding: 0.75rem 1rem;
+            border-radius: 18px;
+            margin-bottom: 0.75rem;
+            line-height: 1.4;
+        }
+
+        .message.sent {
+            background-color: #007bff;
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.received {
+            background-color: #e9e9eb;
+            color: #333;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+
+        #input-area {
+            display: flex;
+            padding: 1rem;
+            background-color: #f9f9f9;
+        }
+
+        #message-input {
+            flex-grow: 1;
+            border: 1px solid #ddd;
+            padding: 0.75rem;
+            border-radius: 20px;
+            margin-right: 0.5rem;
+            outline: none;
+            font-size: 1rem;
+        }
+
+        #message-input:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+        }
+
+        #send-button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+
+        #send-button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="chat-container">
+        <div id="header">
+            WebSocket Chat
+            <div id="connection-status">Connecting...</div>
+        </div>
+        <div id="messages">
+            <!-- Messages will be appended here -->
+        </div>
+        <div id="input-area">
+            <input type="text" id="message-input" placeholder="Type a message...">
+            <button id="send-button">Send</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // --- Configuration ---
+            // Replace with your server's address and port
+            const wsUri = "ws://127.0.0.1:8080";
+
+            // --- Get DOM elements ---
+            const messageInput = document.getElementById("message-input");
+            const sendButton = document.getElementById("send-button");
+            const messagesContainer = document.getElementById("messages");
+            const statusDisplay = document.getElementById("connection-status");
+
+            let websocket;
+
+            function initWebSocket() {
+                console.log("Attempting to connect to WebSocket...");
+                websocket = new WebSocket(wsUri);
+
+                // --- WebSocket Event Handlers ---
+
+                // Fired when the connection is successfully opened
+                websocket.onopen = function (evt) {
+                    console.log("CONNECTION OPEN");
+                    statusDisplay.textContent = "Connected";
+                    statusDisplay.style.color = "#a7ff8b";
+                    messageInput.disabled = false;
+                    sendButton.disabled = false;
+                };
+
+                // Fired when the connection is closed
+                websocket.onclose = function (evt) {
+                    console.log("CONNECTION CLOSED");
+                    statusDisplay.textContent = "Disconnected. Retrying...";
+                    statusDisplay.style.color = "#ffb3b3";
+                    messageInput.disabled = true;
+                    sendButton.disabled = true;
+                    // Attempt to reconnect after 3 seconds
+                    setTimeout(initWebSocket, 3000);
+                };
+
+                // Fired when a message is received from the server
+                websocket.onmessage = function (evt) {
+                    console.log("RESPONSE: " + evt.data);
+                    // Since the C++ code is an echo server, we'll display this as a received message.
+                    appendMessage(evt.data, 'received');
+                };
+
+                // Fired when an error occurs
+                websocket.onerror = function (evt) {
+                    console.error("ERROR: " + evt.data);
+                    statusDisplay.textContent = "Error";
+                    statusDisplay.style.color = "#ff6b6b";
+                };
+            }
+
+            // --- Helper Functions ---
+
+            // Appends a new message to the chat window
+            function appendMessage(msg, type) {
+                const messageDiv = document.createElement("div");
+                messageDiv.className = `message ${type}`; // 'sent' or 'received'
+                messageDiv.textContent = msg;
+                messagesContainer.appendChild(messageDiv);
+
+                // Auto-scroll to the bottom
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+
+            // Sends the message from the input field
+            function sendMessage() {
+                const message = messageInput.value;
+                if (message.trim() !== "" && websocket.readyState === WebSocket.OPEN) {
+                    console.log("SENT: " + message);
+                    websocket.send(message);
+
+                    // Display the sent message immediately
+                    appendMessage(message, 'sent');
+
+                    // Clear the input field
+                    messageInput.value = "";
+                }
+            }
+
+            // --- Event Listeners ---
+
+            // Send message when the button is clicked
+            sendButton.addEventListener("click", sendMessage);
+
+            // Send message when Enter key is pressed in the input field
+            messageInput.addEventListener("keydown", function (event) {
+                if (event.key === "Enter") {
+                    event.preventDefault(); // Prevents new line in some browsers
+                    sendMessage();
+                }
+            });
+
+            // --- Initialisation ---
+            initWebSocket();
+        });
+    </script>
+</body>
+
+</html>
